@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Prediction</title>
+    <link rel="icon" href="images/logo.ico" type="image/x-icon"> <!-- Logo in tab -->
+    <style>
+        body {
+            background-color: lightblue;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 90%;
+            margin: 0 auto;
+            max-width: 1200px;
+        }
+        header {
+            text-align: center;
+            margin-top: 20px;
+        }
+        #themeImage {
+            width: 100%;
+            height: 20vh;  /* 20% of the screen height */
+            object-fit: cover; /* Ensures the image covers the area without distortion */
+        }
+        h1 {
+            margin: 20px 0;
+        }
+        .form-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        input[type="file"] {
+            padding: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .image-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+            position: relative;
+        }
+        #imagePreview {
+            max-width: 100%;
+            max-height: 400px;
+            display: none;
+            margin-bottom: 20px; /* Adds space below the image for prediction */
+        }
+        .prediction-container {
+            position: absolute;
+            bottom: -30px; /* Pushes the prediction text below the image */
+            background-color: rgba(0, 0, 0, 0.6); /* Transparent black background */
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+		
+		/* Display previous predictions */
+        .previous-predictions {
+            margin-top: 40px;
+            text-align: center;
+        }
+        .previous-predictions img {
+            max-width: 100px;
+            max-height: 100px;
+            margin: 10px;
+            border-radius: 5px;
+        }
+        .prediction-item {
+            display: inline-block;
+            margin: 10px;
+            text-align: center;
+        }
+
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 24px;
+            }
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <img id="themeImage" src="images/theme_image.jpg" alt="Theme Image"> <!-- Theme Image -->
+            <h1>Image Prediction</h1> <!-- Website Title -->
+        </header>
+
+        <div class="form-container">
+            <input type="file" id="imageInput" accept="image/*" onchange="previewImage()"> <!-- File input for image selection -->
+            <br><br>
+            <button onclick="uploadImage()">Predict Image</button> <!-- Button to trigger prediction -->
+        </div>
+
+        <div class="image-container">
+            <!-- Image Preview Section -->
+            <img id="imagePreview" src="" alt="Image Preview">
+            <!-- Prediction Text Container -->
+            <div id="predictionResult" class="prediction-container" style="display: none;">
+                Prediction: <span id="predictionText"></span><br>
+                Confidence: <span id="confidenceText"></span>
+            </div>
+        </div>
+		
+		<div class="previous-predictions" id="previousPredictions">
+            <h3>Previous Predictions</h3>
+            <div id="predictionsList"></div>
+            <button onclick="loadMorePredictions()">View</button>
+        </div>
+    </div>
+
+    <script>
+        // Function to preview the selected image before uploading
+        function previewImage() {
+            // Reset the previous prediction result
+            document.getElementById('predictionResult').style.display = 'none'; // Hide previous prediction
+            document.getElementById('predictionText').textContent = ''; // Clear the prediction text
+            document.getElementById('confidenceText').textContent = ''; // Clear the confidence text
+
+            const file = document.getElementById('imageInput').files[0];
+            const reader = new FileReader();
+            
+            reader.onloadend = function() {
+                const imagePreview = document.getElementById('imagePreview');
+                imagePreview.src = reader.result;
+                imagePreview.style.display = 'block'; // Display the image preview
+            }
+            
+            if (file) {
+                reader.readAsDataURL(file); // Read the file as a data URL
+            }
+        }
+
+        // Function to handle image upload and prediction request
+        async function uploadImage() {
+            const formData = new FormData();
+            const imageFile = document.getElementById('imageInput').files[0]; // Get image file from input
+            if (!imageFile) {
+                alert('Please select an image first.');
+                return;
+            }
+            formData.append('image', imageFile);
+
+            try {
+                // Send the image file to the Flask server for prediction
+                const response = await fetch('http://127.0.0.1:5000/predict', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const result = await response.json();
+
+                // Display the prediction and confidence
+                document.getElementById('predictionText').textContent = result.prediction;
+                document.getElementById('confidenceText').textContent = (result.confidence * 100).toFixed(2) + '%';
+
+                // Show the prediction container below the image
+                document.getElementById('predictionResult').style.display = 'block';
+            } catch (error) {
+                console.error('Error uploading the image:', error);
+                alert('An error occurred while predicting the image. Please try again.');
+            }
+        }
+		
+		let currentPredictionPage = 1;
+        
+        async function fetchPreviousPredictions(page = 1) {
+            const response = await fetch('http://127.0.0.1:5000/get_predictions');
+            const predictions = await response.json();
+
+            const predictionsList = document.getElementById('predictionsList');
+            predictionsList.innerHTML = ''; // Clear previous content
+
+            predictions.forEach(prediction => {
+                const predictionItem = document.createElement('div');
+                predictionItem.classList.add('prediction-item');
+
+                const img = document.createElement('img');
+                img.src = `data:image/png;base64,${prediction.thumbnail}`;  // Assuming the thumbnail is base64 encoded
+                //img.src = `data:image/png,${prediction.thumbnail}`;  // Assuming the thumbnail is base64 encoded
+                predictionItem.appendChild(img);
+
+                const label = document.createElement('p');
+                label.textContent = `Prediction: ${prediction.prediction}`;
+                predictionItem.appendChild(label);
+				
+				// Create delete button
+				const deleteButton = document.createElement('button');
+				deleteButton.textContent = "Delete";
+				deleteButton.onclick = () => deletePrediction(prediction.id);  // Bind delete function to the button
+				predictionItem.appendChild(deleteButton);
+
+                predictionsList.appendChild(predictionItem);
+            });
+        }
+		
+		async function deletePrediction(index) {
+			try {
+				// Send DELETE request to the server
+				const response = await fetch(`http://127.0.0.1:5000/delete_prediction/${index}`, {
+					method: 'DELETE',
+				});
+
+				if (response.ok) {
+					alert('Prediction deleted successfully!');
+					fetchPreviousPredictions(currentPredictionPage);  // Reload predictions
+				} else {
+					alert('Failed to delete the prediction');
+				}
+			} catch (error) {
+				console.error('Error deleting prediction:', error);
+				alert('An error occurred while deleting the prediction. Please try again.');
+			}
+		}
+
+        function loadMorePredictions() {
+            currentPredictionPage += 1;
+            fetchPreviousPredictions(currentPredictionPage);
+        }
+
+    </script>
+</body>
+</html>

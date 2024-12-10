@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>View Predictions</h2>
+<ul>
+    {% for prediction in predictions %}
+    <li>
+        <p>Prediction: {{ prediction.prediction_result }}</p>
+        <p>Confidence: {{ prediction.confidence_score }}</p>
+        <p>Date: {{ prediction.prediction_date }}</p>
+        <button onclick="viewDetails({{ prediction.id }})">View Details</button>
+        <button onclick="deletePrediction({{ prediction.id }})">Delete</button>
+    </li>
+    {% endfor %}
+</ul>
+{% endblock %}
