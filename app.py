@@ -37,10 +37,10 @@ imagenet_transform = transforms.Compose([
 ])
 
 # Load ImageNet class labels
-imagenet_classes = {i: line.strip() for i, line in enumerate(open("imagenet_classes.txt"))}
+imagenet_classes = {i: line.strip() for i, line in enumerate(open("models/imagenet_classes.txt"))}
 
 # SQLite Database Configuration
-DB_FILE = 'predictions.db'
+DB_FILE = 'database/predictions.db'
 
 # Database Helper Functions
 def init_db():
