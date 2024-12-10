@@ -1,7 +1,7 @@
 # Image Prediction System
 
 ## Introduction
-The Image Prediction System is a web-based application that allows users to upload images and receive predictions using a pre-trained MobileNetV2 model.
+The Image Prediction System is a web-based application that allows users to upload images and receive predictions using MobileNetV2 model.
 
 ## Features
 - Upload images for prediction
@@ -11,4 +11,4 @@ The Image Prediction System is a web-based application that allows users to uplo
 ## Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/image-prediction-system.git
+   git clone https://github.com/ashasr-arch/image-prediction-system
